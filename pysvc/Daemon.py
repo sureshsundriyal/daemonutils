@@ -58,7 +58,7 @@ class DaemonizeFunc(object):
             try:
                 fd = os.open(filename, flags)
                 flags = fcntl.fcntl(fd, fcntl.F_GETFD)
-                fnctl.fcntl(fd, fcntl.F_SETFD, flags | fcntl.FD_CLOEXEC)
+                fcntl.fcntl(fd, fcntl.F_SETFD, flags | fcntl.FD_CLOEXEC)
             except:
                 sys.exit(self.perror(
                     "Failed to open and set CLOEXEC on %s" % filename))
