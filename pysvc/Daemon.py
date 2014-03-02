@@ -40,7 +40,6 @@ class DaemonizeFunc(object):
         if user:
             pw = pwd.getpwnam(user)
             self.uid = pw.pw_uid
-            self.gid = pw.pw_gid
         self.stdout = outfile
         self.stderr = errfile
         self.chdir = chdir
@@ -143,11 +142,6 @@ class DaemonizeFunc(object):
                 os.setuid(self.uid)
             except Exception, e:
                 sys.exit(self.perror("Failed to setuid : %s" % e))
-        if self.gid:
-            try:
-                os.setgid(self.gid)
-            except Exception, e:
-                sys.exit(self.perror("Failed to setgid : %s" % e))
 
         # Close all the file descriptors
         self.close_and_redirect_all_fds()
