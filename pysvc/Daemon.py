@@ -100,7 +100,7 @@ class DaemonizeFunc(object):
                 try:
                     import ctypes, ctypes.util
 
-                    _libc = ctypes.CDLL(ctypes.util.find_library("C"),
+                    _libc = ctypes.CDLL(ctypes.util.find_library("c"),
                                         use_errno=True)
 
                     if hasattr(_libc, "prctl"):
