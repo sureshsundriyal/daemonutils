@@ -52,7 +52,7 @@ class DaemonizeFunc(object):
     def perror(self, error):
         return "[%s:%s] %s" % (self.daemon_name, self.pid, error)
 
-    def close_and_redirect_all_fds(self):
+    def close_and_redirect_fds(self):
         if not self.stdout or not self.stderr:
             if self.stdout == self.stderr:
                 try:
@@ -144,7 +144,7 @@ class DaemonizeFunc(object):
                 sys.exit(self.perror("Failed to setuid : %s" % e))
 
         # Close all the file descriptors
-        self.close_and_redirect_all_fds()
+        self.close_and_redirect_fds()
         if prctl != 0 and not self.proc_name:
             self.set_proc_name()
 
