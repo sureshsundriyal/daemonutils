@@ -8,7 +8,9 @@ import os
 import pwd
 import sys
 import fcntl
+import random
 import signal
+import string
 import logging
 
 try:
@@ -27,7 +29,7 @@ class DaemonException(Exception):
 
 class DaemonizeFunc(object):
     def __init__(self, func, args=None, kwargs=None, proc_name=None,
-                pidfile=None, user=None, outfile=os.devnull, errfile=os.devnull,
+                pidfile=True, user=None, outfile=os.devnull, errfile=os.devnull,
                 chdir='/', umask=None, close_fds=True,
                 rundir='/var/run'):
         self.func = func
@@ -35,7 +37,10 @@ class DaemonizeFunc(object):
         self.args = args
         self.kwargs = kwargs
         self.proc_name = proc_name
-        self.pidfile = os.path.join(rundir, "%s.pid" %pidfile)
+        self.pidfile = pidfile
+        self.pidfilename = os.path.join(rundir, "%s-%s.pid" % (self.daemon_name,
+                                        ''.join(random.sample(
+                                        string.ascii_lowercase, 5))))
         self.uid = None
         self.gid = None
         if user:
@@ -155,15 +160,17 @@ class DaemonizeFunc(object):
 
 
     def write_pid_file(self):
-        pidfile = os.open(self.pidfile, 'w')
-        pidfile.write("%s" % self.pid)
-        pidfile.close()
+        if self.pidfile:
+            _pidfile = os.open(self.pidfilename, 'w')
+            _pidfile.write("%s" % self.pid)
+            _pidfile.close()
 
     def delete_pid_file(self):
-        try:
-            os.remove(self.pidfile)
-        except (OSError, IOError):
-            pass
+        if self.pidfile:
+            try:
+                os.remove(self.pidfilename)
+            except (OSError, IOError):
+                pass
 
     def start(self):
         self.pid = os.fork()
