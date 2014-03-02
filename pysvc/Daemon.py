@@ -7,6 +7,7 @@ __license__ = "PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2"
 import os
 import pwd
 import sys
+import fcntl
 import signal
 import logging
 
@@ -53,29 +54,28 @@ class DaemonizeFunc(object):
         return "[%s:%s] %s" % (self.daemon_name, self.pid, error)
 
     def close_and_redirect_fds(self):
+        def __open_file_and_set_cloexec(filename, flags):
+            try:
+                fd = os.open(filename, flags)
+                flags = fcntl.fcntl(fd, fcntl.F_GETFD)
+                fnctl.fcntl(fd, fcntl.F_SETFD, flags | fcntl.FD_CLOEXEC)
+            except:
+                sys.exit(self.perror(
+                    "Failed to open and set CLOEXEC on %s" % filename))
+            return fd
         if not self.stdout or not self.stderr:
             if self.stdout == self.stderr:
-                try:
-                    fd = os.open(self.stdout,
-                                 os.O_CREAT | os.O_WRONLY | os.O_APPEND)
-                    sys.stdout = fd
-                    sys.stderr = fd
-                except Exception, e:
-                    sys.exit(self.perror("Failed to redirect stdout/stderr: %s"\
-                             % e))
+                fd = __open_file_and_set_cloexec(self.stdout,
+                             os.O_CREAT | os.O_WRONLY | os.O_APPEND)
+                sys.stdout = fd
+                sys.stderr = fd
             else:
                 if self.stdout:
-                    try:
-                        sys.stdout = os.open(self.stdout,
-                                        os.O_CREAT | os.O_WRONLY | os.O_APPEND)
-                    except Exception, e:
-                        sys.exit(self.perror("Failed to redirect stdout: %s" % e))
+                    sys.stdout = __open_file_and_set_cloexec(self.stdout,
+                                    os.O_CREAT | os.O_WRONLY | os.O_APPEND)
                 if self.stderr:
-                    try:
-                        sys.stderr = os.open(self.stderr,
-                                        os.O_CREAT | os.O_WRONLY | os.O_APPEND)
-                    except:
-                        sys.exit(self.perror("Failed to redirect stderr: %s" % e))
+                    sys.stderr = __open_file_and_set_cloexec(self.stderr,
+                                    os.O_CREAT | os.O_WRONLY | os.O_APPEND)
 
         if not self.close_fds:
             return
