@@ -122,6 +122,11 @@ class DaemonizeFunc(object):
                 pass
 
     def setup_daemon(self):
+        # set sid
+        process_id = os.setsid()
+        if process_id == -1:
+            sys.exit(self.perror("Failed to setsid"))
+
         # Change the running directory
         if self.chdir:
             try:
