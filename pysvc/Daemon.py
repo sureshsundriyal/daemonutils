@@ -31,7 +31,7 @@ class DaemonizeFunc(object):
     def __init__(self, func, args=None, kwargs=None, proc_name=None,
                 pidfile=True, user=None, outfile=os.devnull, errfile=os.devnull,
                 chdir='/', umask=None, close_fds=True, cloexec=True,
-                rundir='/var/run'):
+                rundir='/tmp'):
         self.func = func
         self.daemon_name = func.__name__
         self.args = args
@@ -42,7 +42,6 @@ class DaemonizeFunc(object):
                                         ''.join(random.sample(
                                         string.ascii_lowercase, 5))))
         self.uid = None
-        self.gid = None
         if user:
             pw = pwd.getpwnam(user)
             self.uid = pw.pw_uid
@@ -163,7 +162,7 @@ class DaemonizeFunc(object):
 
     def write_pid_file(self):
         if self.pidfile:
-            _pidfile = os.open(self.pidfilename, 'w')
+            _pidfile = open(self.pidfilename, 'w')
             _pidfile.write("%s" % self.pid)
             _pidfile.close()
 
