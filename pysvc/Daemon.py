@@ -66,11 +66,11 @@ class DaemonizeFunc(object):
                 if self.cloexec:
                     flags = fcntl.fcntl(fd, fcntl.F_GETFD)
                     fcntl.fcntl(fd, fcntl.F_SETFD, flags | fcntl.FD_CLOEXEC)
-            except:
+            except Exception, e:
                 sys.exit(self.perror(
-                    "Failed to open and set CLOEXEC on %s" % filename))
+                    "Failed to open and set CLOEXEC on %s: %s" % (filename, e)))
             return fd
-        if not self.stdout or not self.stderr:
+        if self.stdout or self.stderr:
             if self.stdout == self.stderr:
                 fd = __open_file_and_set_cloexec(self.stdout,
                              os.O_CREAT | os.O_WRONLY | os.O_APPEND)
