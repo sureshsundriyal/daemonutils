@@ -59,7 +59,7 @@ class DaemonizeFunc(object):
         return "[%s:%s] %s" % (self.daemon_name, self.pid, error)
 
     def close_and_redirect_fds(self):
-        def __open_file_and_set_cloexec(filename, flags):
+        def _open_file_and_set_cloexec(filename, flags):
             try:
                 fd = os.open(filename, flags)
                 if self.cloexec:
@@ -71,16 +71,16 @@ class DaemonizeFunc(object):
             return fd
         if self.stdout or self.stderr:
             if self.stdout == self.stderr:
-                fd = __open_file_and_set_cloexec(self.stdout,
+                fd = _open_file_and_set_cloexec(self.stdout,
                              os.O_CREAT | os.O_WRONLY | os.O_APPEND)
                 sys.stdout = fd
                 sys.stderr = fd
             else:
                 if self.stdout:
-                    sys.stdout = __open_file_and_set_cloexec(self.stdout,
+                    sys.stdout = _open_file_and_set_cloexec(self.stdout,
                                     os.O_CREAT | os.O_WRONLY | os.O_APPEND)
                 if self.stderr:
-                    sys.stderr = __open_file_and_set_cloexec(self.stderr,
+                    sys.stderr = _open_file_and_set_cloexec(self.stderr,
                                     os.O_CREAT | os.O_WRONLY | os.O_APPEND)
 
         if not self.close_fds:
@@ -160,13 +160,13 @@ class DaemonizeFunc(object):
             self.set_proc_name()
 
 
-    def write_pid_file(self):
+    def _write_pid_file(self):
         if self.pidfile:
             _pidfile = open(self.pidfilename, 'w')
             _pidfile.write("%s" % self.pid)
             _pidfile.close()
 
-    def delete_pid_file(self):
+    def _delete_pid_file(self):
         if self.pidfile:
             try:
                 os.remove(self.pidfilename)
@@ -182,7 +182,7 @@ class DaemonizeFunc(object):
         self.setup_daemon()
 
         try:
-            self.write_pid_file()
+            self._write_pid_file()
             if self.args and self.kwargs:
                 self.func(*self.args, **self.kwargs)
             elif self.args:
@@ -192,7 +192,7 @@ class DaemonizeFunc(object):
             else:
                 self.func()
         finally:
-            self.delete_pid_file()
+            self._delete_pid_file()
 
     def is_alive(self):
         if self.pid:
@@ -200,7 +200,7 @@ class DaemonizeFunc(object):
                 os.kill(self.pid, 0)
                 return True
             except OSError:
-                self.delete_pid_file()
+                self._delete_pid_file()
         return False
 
     def stop(self):
