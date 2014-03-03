@@ -126,6 +126,8 @@ class DaemonizeFunc(object):
                         self.perror("Failed to set process name: %s" %\
                                     self.proc_name))
                 pass
+        else:
+            return
 
     def setup_daemon(self):
         # set sid
@@ -156,8 +158,6 @@ class DaemonizeFunc(object):
 
         # Close all the file descriptors
         self.close_and_redirect_fds()
-        if prctl != 0 and not self.proc_name:
-            self.set_proc_name()
 
 
     def _write_pid_file(self):
@@ -180,6 +180,9 @@ class DaemonizeFunc(object):
         self.pid = os.getpid()
 
         self.setup_daemon()
+
+        if prctl != 0 and self.proc_name:
+            self.set_proc_name()
 
         try:
             self._write_pid_file()
