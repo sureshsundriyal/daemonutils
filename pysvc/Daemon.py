@@ -30,7 +30,7 @@ class DaemonException(Exception):
 class DaemonizeFunc(object):
     def __init__(self, func, args=None, kwargs=None, proc_name=None,
                 pidfile=True, user=None, outfile=os.devnull, errfile=os.devnull,
-                chdir='/', umask=None, close_fds=True,
+                chdir='/', umask=None, close_fds=True, cloexec=True
                 rundir='/var/run'):
         self.func = func
         self.daemon_name = func.__name__
@@ -51,6 +51,7 @@ class DaemonizeFunc(object):
         self.chdir = chdir
         self.umask = umask
         self.close_fds = close_fds
+        self.cloexec = True
         self.original_umask = None
         self.pid = None
         self.rc = 0
@@ -62,8 +63,9 @@ class DaemonizeFunc(object):
         def __open_file_and_set_cloexec(filename, flags):
             try:
                 fd = os.open(filename, flags)
-                flags = fcntl.fcntl(fd, fcntl.F_GETFD)
-                fcntl.fcntl(fd, fcntl.F_SETFD, flags | fcntl.FD_CLOEXEC)
+                if self.cloexec:
+                    flags = fcntl.fcntl(fd, fcntl.F_GETFD)
+                    fcntl.fcntl(fd, fcntl.F_SETFD, flags | fcntl.FD_CLOEXEC)
             except:
                 sys.exit(self.perror(
                     "Failed to open and set CLOEXEC on %s" % filename))
