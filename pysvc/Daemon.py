@@ -30,7 +30,7 @@ class DaemonException(Exception):
 class DaemonizeFunc(object):
     def __init__(self, func, args=None, kwargs=None, proc_name=None,
                 pidfile=True, user=None, outfile=os.devnull, errfile=os.devnull,
-                chdir='/', umask=None, close_fds=True, cloexec=True
+                chdir='/', umask=None, close_fds=True, cloexec=True,
                 rundir='/var/run'):
         self.func = func
         self.daemon_name = func.__name__
@@ -51,7 +51,7 @@ class DaemonizeFunc(object):
         self.chdir = chdir
         self.umask = umask
         self.close_fds = close_fds
-        self.cloexec = True
+        self.cloexec = cloexec
         self.original_umask = None
         self.pid = None
         self.rc = 0
@@ -216,6 +216,7 @@ class DaemonizeFunc(object):
                 pid, exit_status = os.waitpid(self.pid, 0)
                 signal.alarm(0)
                 self.rc = os.WEXITSTATUS(exit_status)
+                break
             except:
                 pass
             finally:
