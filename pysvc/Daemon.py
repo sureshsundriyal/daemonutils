@@ -195,12 +195,13 @@ class DaemonizeFunc(object):
             self.delete_pid_file()
 
     def is_alive(self):
-        try:
-            os.kill(self.pid, 0)
-            return True
-        except OSError:
-            self.delete_pid_file()
-            return False
+        if self.pid:
+            try:
+                os.kill(self.pid, 0)
+                return True
+            except OSError:
+                self.delete_pid_file()
+        return False
 
     def stop(self):
         if not self.pid:
