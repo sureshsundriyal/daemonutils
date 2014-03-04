@@ -122,7 +122,6 @@ class Daemonizable(object):
                 logging.exception(
                         self.perror("Failed to set process name: %s" %\
                                     self.proc_name))
-                pass
         else:
             return
 
@@ -216,7 +215,7 @@ class Daemonizable(object):
                 sigalrm_handler = signal.signal(signal.SIGALRM, noop)
                 signal.alarm(3)
                 os.kill(self.pid, signum)
-                pid, exit_status = os.waitpid(self.pid, 0)
+                _, exit_status = os.waitpid(self.pid, 0)
                 signal.alarm(0)
                 self.rc = os.WEXITSTATUS(exit_status)
                 break
