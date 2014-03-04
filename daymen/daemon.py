@@ -29,18 +29,14 @@ class DaemonException(Exception):
 
 class DaemonizeFunc(object):
     def __init__(self, func, args=None, kwargs=None, proc_name=None,
-                pidfile=True, user=None, outfile=os.devnull, errfile=os.devnull,
+                user=None, outfile=os.devnull, errfile=os.devnull,
                 chdir='/', umask=None, close_fds=True, cloexec=True,
-                rundir='/tmp'):
+                pidfile=None, rundir='/tmp'):
         self.func = func
         self.daemon_name = func.__name__
         self.args = args
         self.kwargs = kwargs
         self.proc_name = proc_name
-        self.pidfile = pidfile
-        self.pidfilename = os.path.join(rundir, "%s-%s.pid" % (self.daemon_name,
-                                        ''.join(random.sample(
-                                        string.ascii_lowercase, 5))))
         self.uid = None
         if user:
             pw = pwd.getpwnam(user)
@@ -51,6 +47,7 @@ class DaemonizeFunc(object):
         self.umask = umask
         self.close_fds = close_fds
         self.cloexec = cloexec
+        self.pidfile = os.path.join(rundir, pidfile)
         self.original_umask = None
         self.pid = None
         self.rc = 0
@@ -162,14 +159,14 @@ class DaemonizeFunc(object):
 
     def _write_pid_file(self):
         if self.pidfile:
-            _pidfile = open(self.pidfilename, 'w')
+            _pidfile = open(self.pidfile, 'w')
             _pidfile.write("%s" % self.pid)
             _pidfile.close()
 
     def _delete_pid_file(self):
         if self.pidfile:
             try:
-                os.remove(self.pidfilename)
+                os.remove(self.pidfile)
             except (OSError, IOError):
                 pass
 
