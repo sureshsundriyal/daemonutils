@@ -8,7 +8,6 @@ import os
 import pwd
 import sys
 import fcntl
-import random
 import signal
 import string
 import logging
