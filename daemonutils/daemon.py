@@ -26,15 +26,10 @@ def noop():
 class DaemonException(Exception):
     pass
 
-class DaemonizeFunc(object):
-    def __init__(self, func, args=None, kwargs=None, proc_name=None,
-                user=None, outfile=os.devnull, errfile=os.devnull,
-                chdir='/', umask=None, close_fds=True, cloexec=True,
-                pidfile=None):
-        self.func = func
-        self.daemon_name = func.__name__
-        self.args = args
-        self.kwargs = kwargs
+class Daemonizable(object):
+    def __init__(self, proc_name=None, user=None, outfile=os.devnull,
+                errfile=os.devnull, chdir='/', umask=None, close_fds=True,
+                cloexec=True, pidfile=None):
         self.proc_name = proc_name
         self.uid = None
         if user:
@@ -52,7 +47,13 @@ class DaemonizeFunc(object):
         self.rc = 0
 
     def perror(self, error):
-        return "[%s:%s] %s" % (self.daemon_name, self.pid, error)
+        """
+        Should be overridden by the child class to print appropriate error
+        messages.
+        """
+        if self.proc_name:
+            return "[%s:%s] %s" % (self.proc_name, self.pid, error)
+        return "[%s] %s" % (self.pid, error)
 
     def close_and_redirect_fds(self):
         def _open_file_and_set_cloexec(filename, flags):
@@ -169,6 +170,10 @@ class DaemonizeFunc(object):
             except (OSError, IOError):
                 pass
 
+    def run(self):
+        """ Should be overridden by the inheriting class"""
+        raise NotImplementedError
+
     def start(self):
         try:
             self.pid = os.fork()
@@ -186,14 +191,7 @@ class DaemonizeFunc(object):
 
         try:
             self._write_pid_file()
-            if self.args and self.kwargs:
-                self.rc = self.func(*self.args, **self.kwargs)
-            elif self.args:
-                self.rc = self.func(*self.args)
-            elif self.kwargs:
-                self.rc = self.func(**self.kwargs)
-            else:
-                self.rc = self.func()
+            self.rc = self.run()
         finally:
             self._delete_pid_file()
             sys.exit(self.rc)
@@ -226,3 +224,34 @@ class DaemonizeFunc(object):
                 pass
             finally:
                 signal.signal(signal.SIGALRM, sigalrm_handler)
+
+class DaemonizeFunc(Daemonizable):
+    def __init__(self, func, args=None, kwargs=None, proc_name=None,
+                user=None, outfile=os.devnull, errfile=os.devnull,
+                chdir='/', umask=None, close_fds=True, cloexec=True,
+                pidfile=None):
+        self.func = func
+        self.args = args
+        self.kwargs = kwargs
+        Daemonizable.__init__(self, proc_name, user, outfile, errfile, chdir,
+                          close_fds, cloexec, pidfile)
+
+    def perror(self, error):
+        if self.proc_name:
+            Daemonizable.perror(self, error)
+        else:
+            return "[%s:%s] %s" % (self.func.__name__, self.pid, error)
+
+    def run(self):
+        try:
+            if self.args and self.kwargs:
+                self.rc = self.func(*self.args, **self.kwargs)
+            elif self.args:
+                self.rc = self.func(*self.args)
+            elif self.kwargs:
+                self.rc = self.func(**self.kwargs)
+            else:
+                self.rc = self.func()
+        except Exception, e:
+            sys.exit(self.perror(str(e)))
+        return self.rc
