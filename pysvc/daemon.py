@@ -174,7 +174,11 @@ class DaemonizeFunc(object):
                 pass
 
     def start(self):
-        self.pid = os.fork()
+        try:
+            self.pid = os.fork()
+        except OSError, e:
+            raise DaemonException("Fork failed: %s" % e)
+
         if self.pid != 0:
             return
         self.pid = os.getpid()
@@ -187,15 +191,17 @@ class DaemonizeFunc(object):
         try:
             self._write_pid_file()
             if self.args and self.kwargs:
-                self.func(*self.args, **self.kwargs)
+                self.rc = self.func(*self.args, **self.kwargs)
             elif self.args:
-                self.func(*self.args)
+                self.rc = self.func(*self.args)
             elif self.kwargs:
-                self.func(**self.kwargs)
+                self.rc = self.func(**self.kwargs)
             else:
-                self.func()
+                self.rc = self.func()
         finally:
             self._delete_pid_file()
+            sys.exit(self.rc)
+
 
     def is_alive(self):
         if self.pid:
