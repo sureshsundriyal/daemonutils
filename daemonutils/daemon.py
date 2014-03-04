@@ -2,7 +2,7 @@
 
 __author__ = "Suresh Sundriyal"
 __copyright__ = "Copyright 2014, Suresh Sundriyal"
-__license__ = "PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2"
+__license__ = "The BSD 2-Clause License"
 
 import os
 import pwd
