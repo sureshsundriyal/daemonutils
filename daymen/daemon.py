@@ -30,7 +30,7 @@ class DaemonizeFunc(object):
     def __init__(self, func, args=None, kwargs=None, proc_name=None,
                 user=None, outfile=os.devnull, errfile=os.devnull,
                 chdir='/', umask=None, close_fds=True, cloexec=True,
-                pidfile=None, rundir='/tmp'):
+                pidfile=None):
         self.func = func
         self.daemon_name = func.__name__
         self.args = args
@@ -46,7 +46,7 @@ class DaemonizeFunc(object):
         self.umask = umask
         self.close_fds = close_fds
         self.cloexec = cloexec
-        self.pidfile = os.path.join(rundir, pidfile)
+        self.pidfile = pidfile
         self.original_umask = None
         self.pid = None
         self.rc = 0
