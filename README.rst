@@ -1,3 +1,5 @@
-******************************************************
-daemonutils : Python library for crating \*nix daemons
-******************************************************
+***********
+daemonutils
+***********
+
+Python library for creating \*nix daemons.
