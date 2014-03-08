@@ -23,10 +23,10 @@ prctl = None
 def noop():
     return
 
-class DaemonException(Exception):
+class BackgroundProcessError(Exception):
     pass
 
-class Daemonizable(object):
+class Backgroundable(object):
     def __init__(self, proc_name=None, user=None, outfile=os.devnull,
                 errfile=os.devnull, chdir='/', umask=None, close_fds=True,
                 cloexec=True, pidfile=None):
@@ -46,7 +46,7 @@ class Daemonizable(object):
         self.pid = None
         self.rc = 0
 
-    def perror(self, error):
+    def _perror(self, error):
         """
         Should be overridden by the child class to print appropriate error
         messages.
@@ -55,7 +55,7 @@ class Daemonizable(object):
             return "[%s:%s] %s" % (self.proc_name, self.pid, error)
         return "[%s] %s" % (self.pid, error)
 
-    def close_and_redirect_fds(self):
+    def _close_and_redirect_fds(self):
         def _open_file_and_set_cloexec(filename, flags):
             try:
                 fd = os.open(filename, flags)
@@ -63,7 +63,7 @@ class Daemonizable(object):
                     flags = fcntl.fcntl(fd, fcntl.F_GETFD)
                     fcntl.fcntl(fd, fcntl.F_SETFD, flags | fcntl.FD_CLOEXEC)
             except Exception, e:
-                sys.exit(self.perror(
+                sys.exit(self._perror(
                     "Failed to open and set CLOEXEC on %s: %s" % (filename, e)))
             return fd
         if self.stdout or self.stderr:
@@ -95,7 +95,7 @@ class Daemonizable(object):
                 except OSError:
                     pass
 
-    def set_proc_name(self):
+    def _set_proc_name(self):
         global prctl
         if self.proc_name:
             if prctl == None:
@@ -120,40 +120,40 @@ class Daemonizable(object):
                       0, 0, 0)
             except:
                 logging.exception(
-                        self.perror("Failed to set process name: %s" %\
+                        self._perror("Failed to set process name: %s" %\
                                     self.proc_name))
         else:
             return
 
-    def setup_daemon(self):
+    def _setup_process_environment(self):
         # set sid
         process_id = os.setsid()
         if process_id == -1:
-            sys.exit(self.perror("Failed to setsid"))
+            sys.exit(self._perror("Failed to setsid"))
 
         # Change the running directory
         if self.chdir:
             try:
                 os.chdir(self.chdir)
             except Exception, e:
-                sys.exit(self.perror("Failed to chdir : %s" % e))
+                sys.exit(self._perror("Failed to chdir : %s" % e))
 
         # set the current process' umask
         if self.umask:
             try:
                 self.original_umask = os.umask(self.umask)
             except Exception, e:
-                sys.exit(self.perror("Failed to set the umask : %s" % e))
+                sys.exit(self._perror("Failed to set the umask : %s" % e))
 
         # set the current process' uid
         if self.uid:
             try:
                 os.setuid(self.uid)
             except Exception, e:
-                sys.exit(self.perror("Failed to setuid : %s" % e))
+                sys.exit(self._perror("Failed to setuid : %s" % e))
 
         # Close all the file descriptors
-        self.close_and_redirect_fds()
+        self._close_and_redirect_fds()
 
 
     def _write_pid_file(self):
@@ -177,16 +177,16 @@ class Daemonizable(object):
         try:
             self.pid = os.fork()
         except OSError, e:
-            raise DaemonException("Fork failed: %s" % e)
+            raise BackgroundProcessError("Fork failed: %s" % e)
 
         if self.pid != 0:
             return
         self.pid = os.getpid()
 
-        self.setup_daemon()
+        self._setup_process_environment()
 
         if prctl != 0 and self.proc_name:
-            self.set_proc_name()
+            self._set_proc_name()
 
         try:
             self._write_pid_file()
@@ -224,7 +224,7 @@ class Daemonizable(object):
             finally:
                 signal.signal(signal.SIGALRM, sigalrm_handler)
 
-class DaemonizeFunc(Daemonizable):
+class BackgroundFunc(Backgroundable):
     def __init__(self, func, args=None, kwargs=None, proc_name=None,
                 user=None, outfile=os.devnull, errfile=os.devnull,
                 chdir='/', umask=None, close_fds=True, cloexec=True,
@@ -232,12 +232,12 @@ class DaemonizeFunc(Daemonizable):
         self.func = func
         self.args = args
         self.kwargs = kwargs
-        Daemonizable.__init__(self, proc_name, user, outfile, errfile, chdir,
+        Backgroundable.__init__(self, proc_name, user, outfile, errfile, chdir,
                           close_fds, cloexec, pidfile)
 
-    def perror(self, error):
+    def _perror(self, error):
         if self.proc_name:
-            Daemonizable.perror(self, error)
+            Backgroundable._perror(self, error)
         else:
             return "[%s:%s] %s" % (self.func.__name__, self.pid, error)
 
@@ -252,5 +252,5 @@ class DaemonizeFunc(Daemonizable):
             else:
                 self.rc = self.func()
         except Exception, e:
-            sys.exit(self.perror(str(e)))
+            sys.exit(self._perror(str(e)))
         return self.rc
