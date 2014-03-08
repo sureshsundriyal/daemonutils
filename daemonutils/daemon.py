@@ -12,12 +12,12 @@ import signal
 import logging
 
 try:
-    MAXFD = os.sysconf("SC_OPEN_MAX")
+    _MAXFD = os.sysconf("SC_OPEN_MAX")
 except:
-    MAXFD = 256
+    _MAXFD = 256
 
-PR_SET_NAME = 15
-prctl = None
+_PR_SET_NAME = 15
+_prctl = None
 
 def _perror(error):
     return("[%s] %s" % (os.getpid(), error))
@@ -56,20 +56,20 @@ def _close_and_redirect_fds(stdout, stderr, close_fds, cloexec):
 
         if hasattr(os, 'closerange'):
             try:
-                os.closerange(3, MAXFD)
+                os.closerange(3, _MAXFD)
             except OSError:
                 pass
         else:
-            for fd in xrange(3, MAXFD):
+            for fd in xrange(3, _MAXFD):
                 try:
                     os.close(fd)
                 except OSError:
                     pass
 
 def _set_proc_name(proc_name):
-    global prctl
+    global _prctl
     if proc_name:
-        if prctl == None:
+        if _prctl == None:
             try:
                 import ctypes, ctypes.util
 
@@ -77,18 +77,18 @@ def _set_proc_name(proc_name):
                                     use_errno=True)
 
                 if hasattr(_libc, "prctl"):
-                    prctl = _libc.prctl
+                    _prctl = _libc.prctl
                 else:
-                    prctl = 0
+                    _prctl = 0
             except Exception, e:
                 logging.exception("Failed to initialize prctl")
-                prctl = 0
+                _prctl = 0
 
-        if prctl == 0:
+        if _prctl == 0:
             return
 
         try:
-            prctl(PR_SET_NAME, ctypes.c_char_p(proc_name), 0, 0, 0)
+            _prctl(_PR_SET_NAME, ctypes.c_char_p(proc_name), 0, 0, 0)
         except:
             logging.exception(
                     _perror("Failed to set process name: %s" %\
@@ -139,7 +139,6 @@ def _write_pid_file(pidfile):
 def _delete_pid_file(pidfile):
     if pidfile:
         try:
-            print "Deleting file"
             os.remove(pidfile)
         except (OSError, IOError):
             pass
@@ -159,7 +158,7 @@ def background_process(func=None, args=None, kwargs=None, proc_name=None,
         _setup_process_environment(chdir, umask, uid, gid)
         _close_and_redirect_fds(stdout, stderr, close_fds, cloexec)
 
-        if prctl != 0 and proc_name:
+        if _prctl != 0 and proc_name:
             _set_proc_name(proc_name)
 
         # If daemonizing, double fork and exit, so that the child can be
@@ -195,5 +194,4 @@ def background_process(func=None, args=None, kwargs=None, proc_name=None,
 def sleep():
     while True:
         import time
-        print "Sleeping"
         time.sleep(10)
